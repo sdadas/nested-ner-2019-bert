@@ -30,7 +30,7 @@ class Reader:
         sent_list = []
         max_len = 0
         num_thresh = 0
-        with open(filename) as f:
+        with open(filename, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line == "":  # last few blank lines

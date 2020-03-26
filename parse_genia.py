@@ -6,7 +6,7 @@ from config import config
 
 
 # Download http://www.nactem.ac.uk/GENIA/current/GENIA-corpus/Part-of-speech/GENIAcorpus3.02p.tgz
-CORPUS_FILE_PATH: str = "../GENIA/GENIAcorpus3.02.merged.xml"
+CORPUS_FILE_PATH: str = "GENIA/GENIAcorpus3.02.merged.xml"
 
 
 class Stat:
@@ -186,7 +186,7 @@ def parse_genia() -> None:
     dataset_size_list = [15022, 1669, 1855]
 
     do_lower_case = '-cased' not in config.bert_model
-    with open(CORPUS_FILE_PATH, 'r') as f:
+    with open(CORPUS_FILE_PATH, 'r', encoding="utf-8") as f:
         for output_file, dataset_size in zip(output_file_list, dataset_size_list):
             output_lines = []
             sent_count = 0
@@ -205,7 +205,7 @@ def parse_genia() -> None:
                     token_count += len(words.split(' '))
 
                     if sent_count == dataset_size:
-                        with open(output_dir_path + output_file, 'w') as f2:
+                        with open(output_dir_path + output_file, 'w', encoding="utf-8") as f2:
                             f2.writelines(output_lines)
 
                         print("")

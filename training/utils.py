@@ -1,9 +1,8 @@
-from typing import Union, Iterator, Tuple, List
+from typing import Union, Iterator, Tuple, List, Any
 from enum import Enum
 import numpy as np
 import torch.nn
 import torch.optim as optim
-import torch.optim.optimizer as optimizer
 from adabound import AdaBound
 
 from model.sequence_labeling import NestedSequenceLabel, BiRecurrentConvCRF4NestedNER
@@ -37,7 +36,7 @@ def adjust_learning_rate(lr_scheduler: Union[optim.lr_scheduler.StepLR, optim.lr
 
 
 def create_opt(parameters: Iterator, opt: Optimizer, lr: float = None, l2: float = None, lr_patience: int = None) \
-        -> Tuple[optimizer.Optimizer, Union[optim.lr_scheduler.StepLR, optim.lr_scheduler.ReduceLROnPlateau]]:
+        -> Tuple[Any, Union[optim.lr_scheduler.StepLR, optim.lr_scheduler.ReduceLROnPlateau]]:
     if opt == Optimizer.AdaBound:
         optimizer = AdaBound(parameters, lr=lr if lr is not None else 0.001,
                              weight_decay=l2 if l2 is not None else 0.)

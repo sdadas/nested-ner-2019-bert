@@ -122,6 +122,7 @@ log_file_path = config.model_path + "_" + serial_number + '.tmp'
 if not os.path.isdir(config.model_root_path):
     os.makedirs(config.model_root_path, mode=0o755, exist_ok=True)
 logger = get_logger('Nested Mention', file=log_file_path)
+model_type = sys.argv[1] if len(sys.argv) > 1 else None
 
 
 # load data
@@ -155,10 +156,11 @@ f.close()
 
 # misc info
 misc_config: Dict[str, Alphabet] = pickle.load(open(config.config_data_path, 'rb'))
-voc_dict, label_dict = load_dynamic_config(misc_config)
+voc_dict = misc_config.get("voc_dict")
+label_dict = misc_config.get("label_dict")
 config.voc_size = voc_dict.size()
 config.label_size = label_dict.size()
-
+config.bert_model = misc_config.get("bert_model", config.bert_model)
 config.if_gpu = config.if_gpu and torch.cuda.is_available()
 
 logger.info(config)  # print training setting

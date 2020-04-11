@@ -1,23 +1,29 @@
+import os
 from typing import Optional, List, Tuple
 import pdb
 from collections import namedtuple, defaultdict
-from transformers.tokenization_bert import BertTokenizer
+
+from tokenizers import BertWordPieceTokenizer
+from tokenizers.implementations import BaseTokenizer
 
 from util.utils import Alphabet
 
 
 SentInst = namedtuple('SentInst', 'tokens chars entities')
 
-CLS = '[CLS]'
-SEP = '[SEP]'
 
 
 class Reader:
-    def __init__(self, bert_model: str) -> None:
+    def __init__(self, bert_model: str, tokenizer: BaseTokenizer=None, cls: str="[CLS]", sep: str="[SEP]", threshold=6):
 
-        self.bert_tokenizer: BertTokenizer = BertTokenizer.from_pretrained(bert_model,
-                                                                           do_lower_case='-cased' not in bert_model)
+        self.tokenizer: BaseTokenizer = tokenizer
+        self.cls = cls
+        self.sep = sep
+        if self.tokenizer is None:
+            vocab_path: str = "tokenization/" + bert_model + ".txt"
+            self.tokenizer = BertWordPieceTokenizer(vocab_path, lowercase="-cased" not in bert_model)
 
+        self.threshold = threshold
         self.subword_alphabet: Optional[Alphabet] = None
         self.label_alphabet: Optional[Alphabet] = None
 
@@ -25,8 +31,7 @@ class Reader:
         self.dev: Optional[List[SentInst]] = None
         self.test: Optional[List[SentInst]] = None
 
-    @staticmethod
-    def _read_file(filename: str, mode: str = 'train') -> List[SentInst]:
+    def _read_file(self, filename: str, mode: str = 'train') -> List[SentInst]:
         sent_list = []
         max_len = 0
         num_thresh = 0
@@ -52,10 +57,12 @@ class Reader:
                         if int(pointers[1]) > len(tokens):
                             pdb.set_trace()
                         span_len = int(pointers[1]) - int(pointers[0])
-                        assert (span_len > 0)
+                        if span_len < 0:
+                            print("Warning! span_len < 0")
+                            continue
                         if span_len > max_len:
                             max_len = span_len
-                        if span_len > 6:
+                        if span_len > self.threshold:
                             num_thresh += 1
 
                         new_entity = (int(pointers[0]), int(pointers[1]), label)
@@ -69,7 +76,7 @@ class Reader:
 
                 sent_list.append(sent_inst)
         print("Max length: {}".format(max_len))
-        print("Threshold 6: {}".format(num_thresh))
+        print("Threshold {}: {}".format(self.threshold, num_thresh))
         return sent_list
 
     def _gen_dic(self) -> None:
@@ -83,7 +90,8 @@ class Reader:
                 num_mention += len(sentInst.entities)
             print("# mentions: {}".format(num_mention))
 
-        self.subword_alphabet = Alphabet(self.bert_tokenizer.vocab, 0)
+        vocab = [self.tokenizer.id_to_token(idx) for idx in range(self.tokenizer.get_vocab_size())]
+        self.subword_alphabet = Alphabet(vocab, 0)
         self.label_alphabet = Alphabet(label_set, 0)
 
     @staticmethod
@@ -129,8 +137,6 @@ class Reader:
         return padded_input_ids_batches, input_mask_batches, mask_batches
 
     def to_batch(self, batch_size: int) -> Tuple:
-        bert_tokenizer = self.bert_tokenizer
-
         ret_list = []
 
         for sent_list in [self.train, self.dev, self.test]:
@@ -149,13 +155,14 @@ class Reader:
                 subtoken_vec = []
                 first_subtoken_vec = []
                 last_subtoken_vec = []
-                subtoken_vec.extend(bert_tokenizer.convert_tokens_to_ids([CLS]))
+                subtoken_vec.append(self.tokenizer.token_to_id(self.cls))
                 for t in sentInst.tokens:
-                    st = bert_tokenizer.tokenize(t)
+                    encoding = self.tokenizer.encode(t)
+                    ids = [v for v, mask in zip(encoding.ids, encoding.special_tokens_mask) if mask == 0]
                     first_subtoken_vec.append(len(subtoken_vec))
-                    subtoken_vec.extend(bert_tokenizer.convert_tokens_to_ids(st))
+                    subtoken_vec.extend(ids)
                     last_subtoken_vec.append(len(subtoken_vec))
-                subtoken_vec.extend(bert_tokenizer.convert_tokens_to_ids([SEP]))
+                subtoken_vec.append(self.tokenizer.token_to_id(self.sep))
 
                 label_list = [(u[0], u[1], self.label_alphabet.get_index(u[2])) for u in sentInst.entities]
 

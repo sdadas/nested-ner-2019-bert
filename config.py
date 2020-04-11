@@ -26,7 +26,7 @@ class Config:
         self.lstm_dropout: float = 0.50
 
         # for training
-        self.epoch: int = 50
+        self.epoch: int = 500
         self.if_gpu: bool = True
         self.opt: Optimizer = Optimizer.AdaBound
         self.lr: float = 0.001 if self.opt != Optimizer.SGD else 0.1

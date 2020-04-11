@@ -1,10 +1,12 @@
 __author__ = 'max'
 __maintainer__ = 'takashi'
 
+import os
 from typing import List, Union
 import torch
 from torch import Tensor
 import torch.nn as nn
+from transformers import AutoModel
 from transformers.modeling_bert import BertModel
 
 from module.crf import ChainCRF4NestedNER
@@ -25,7 +27,11 @@ class BiRecurrentConvCRF4NestedNER(nn.Module):
                  lstm_dropout: float = 0.50, fine_tune: bool = False) -> None:
         super(BiRecurrentConvCRF4NestedNER, self).__init__()
 
-        self.bert: BertModel = BertModel.from_pretrained(bert_model)
+        if os.path.exists(bert_model):
+            print("Loading {}".format(bert_model))
+            self.bert = AutoModel.from_pretrained(bert_model)
+        else:
+            self.bert: BertModel = BertModel.from_pretrained(bert_model)
         self.bert.embeddings.dropout = VarDropout(self.bert.embeddings.dropout.p)
         for l in range(len(self.bert.encoder.layer)):
             self.bert.encoder.layer[l].attention.output.dropout \

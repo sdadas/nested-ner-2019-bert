@@ -41,7 +41,7 @@ def batch_stat(batches: Tuple[List[List[List[int]]],
 
 
 if __name__ == "__main__":
-    tokenizer_dir = "tokenization/polish/"
+    tokenizer_dir = "tokenization/polish-roberta-large/"
     tokenizer = SentencePieceBPETokenizer(f"{tokenizer_dir}/vocab.json", f"{tokenizer_dir}/merges.txt")
     getattr(tokenizer, "_tokenizer").post_processor = RobertaProcessing(sep=("</s>", 2), cls=("<s>", 0))
     reader = Reader("polish", tokenizer, cls="<s>", sep="</s>", threshold=8)
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     batch_stat(test_batches)
 
     misc_dict = save_dynamic_config(reader)
-    misc_dict["bert_model"] = "./data/poleval_model/"
+    misc_dict["bert_model"] = "./data/roberta_large_transformers/"
     f = open(config.config_data_path, 'wb')
     pickle.dump(misc_dict, f)
     f.close()
